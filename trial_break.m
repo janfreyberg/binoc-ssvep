@@ -2,7 +2,7 @@ function trial_break(break_time, invoking_function)
 global pxsize frameWidth ycen xcen fixWidth scr l_key u_key d_key r_key esc_key stimRect fixLines fixPoint frameRect;
 KbQueueStart;
 for lapsedTime = 0:break_time
-    if strcmp(invoking_function, 'binocular_ssvep')
+    if strcmp(invoking_function, 'binocular_ssvep') || strcmp(invoking_function, 'validate_stimuli')
         for k = 1:2;
             DrawFormattedText(scr, ['Break for ' num2str(break_time-lapsedTime)], 'center', 'center', 0, [], [], [], [], [], stimRect{k});
             Screen('FrameRect', scr, 0, frameRect{k}, frameWidth);
