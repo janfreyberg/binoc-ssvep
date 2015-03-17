@@ -12,50 +12,7 @@ ID ='test';% input('Participant ID? ', 's');
 diagnosis =3;% input('Diagnosis? ');
 scr_diagonal = 24;
 scr_distance = 60;
-
-tstamp = clock;
-if ~isdir( fullfile(pwd, 'Results', mfilename, num2str(diagnosis)) )
-    mkdir( fullfile(pwd, 'Results', mfilename, num2str(diagnosis)) );
-end
-savefile = fullfile(pwd, 'Results', mfilename, num2str(diagnosis), [sprintf('%02d-%02d-%02d-%02d%02d-', tstamp(1), tstamp(2), tstamp(3), tstamp(4), tstamp(5)), ID, '.mat']);
-
-% Store script content(s) for posterity
-allScripts = ls('*.m');
-for scriptIndex = 1:size(allScripts, 1)
-    scripts.name{scriptIndex} = allScripts(scriptIndex, :);
-    scripts.content{scriptIndex} = fileread(allScripts(scriptIndex, :));
-end
-
-%% Experiment Variables.
 scr_background = 127.5;
-scr_no = 0;
-scr_dimensions = Screen('Rect', scr_no);
-xcen = scr_dimensions(3)/2;
-ycen = scr_dimensions(4)/2;
-
-% Frame Duration
-frame_dur = 1/144;
-
-% Frequencies
-freq1 = 36;
-freq2 = 28.8;
-nframe{1} = 144/freq1;
-nframe{2} = 144/freq2;
-
-% Trialtime in seconds
-trialdur = 5;
-
-% Stimulus
-% percentage of maximum contrast
-contr = 0.6;
-% stimsize in degree
-stimsize = 6;
-% cycles per degree
-cycpdegree = 2;
-
-luminances = [127.5 100 70];
-
-%% Set up Keyboard, Screen, Sound
 % Keyboard
 KbName('UnifyKeyNames');
 u_key = KbName('UpArrow');
@@ -84,6 +41,50 @@ PsychPortAudio('FillBuffer', pa, bp400);
 scr = Screen('OpenWindow', scr_no, scr_background);
 HideCursor;
 Screen('BlendFunction', scr, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
+tstamp = clock;
+if ~isdir( fullfile(pwd, 'Results', mfilename, num2str(diagnosis)) )
+    mkdir( fullfile(pwd, 'Results', mfilename, num2str(diagnosis)) );
+end
+savefile = fullfile(pwd, 'Results', mfilename, num2str(diagnosis), [sprintf('%02d-%02d-%02d-%02d%02d-', tstamp(1), tstamp(2), tstamp(3), tstamp(4), tstamp(5)), ID, '.mat']);
+
+% Store script content(s) for posterity
+allScripts = ls('*.m');
+for scriptIndex = 1:size(allScripts, 1)
+    scripts.name{scriptIndex} = allScripts(scriptIndex, :);
+    scripts.content{scriptIndex} = fileread(allScripts(scriptIndex, :));
+end
+
+%% Experiment Variables.
+
+scr_no = 0;
+scr_dimensions = Screen('Rect', scr_no);
+xcen = scr_dimensions(3)/2;
+ycen = scr_dimensions(4)/2;
+
+% Frame Duration
+frame_dur = 1/144;
+
+% Frequencies
+freq1 = 36;
+freq2 = 28.8;
+nframe{1} = 144/freq1;
+nframe{2} = 144/freq2;
+
+% Trialtime in seconds
+trialdur = 5;
+
+% Stimulus
+% percentage of maximum contrast
+contr = 0.6;
+% stimsize in degree
+stimsize = 6;
+% cycles per degree
+cycpdegree = 2;
+
+luminances = [127.5 100 70];
+
 
 %% Prepare stimuli
 % Stimsize
@@ -118,6 +119,7 @@ for k = 1:2
 textRect{k} = stimRect{k} + [ 0 pxsize/2 0 0 ];
 end
 
+
 %% Demonstrate
 for k = 1:2
     Screen('DrawTexture', scr, grating{1}, [], stimRect{k}, angle{1});
@@ -149,71 +151,69 @@ WaitSecs(0.5); KbWait;
 
 
 %% Try without Flicker
+pressSecs = zeros([trialdur*144, 1]);
+pressList = zeros([trialdur*144, 3]);
+trigg = zeros([trialdur*144, 1]);
 
-% pressSecs = zeros([trialdur*144, 1]);
-% pressList = zeros([trialdur*144, 3]);
-% trigg = zeros([trialdur*144, 1]);
-% 
-% Priority(1);
-% outp(address, 101); WaitSecs(0.002); outp(address, 0);
-% for i = 2:trialdur*144
-%     
-%     for k = 1:2
-%         Screen('DrawTexture', scr, grating{1}, [], stimRect{k}, angle{k});
-%         Screen('FrameRect', scr, 0, frameRect{k}, frameWidth);
-%         Screen('DrawLines', scr, fixLines, fixWidth, 0, fixPoint{k});
-%     end
-%     Screen('Flip', scr);
-%     [~, pressSecs(i), firstPress] = KbCheck;
-%     pressList(i, 1:3) = firstPress(1, [l_key, u_key, r_key]);
-%     if sum(pressList(i, 1:3) ~= pressList(i-1, 1:3))
-%         outp(address, binaryVectorToDecimal(pressList(i, 1:3))+1);
-%         WaitSecs(0.002); outp(address, 0);
-%     end
-%     
-%     
-% end
-% outp(address, 99); WaitSecs(0.002); outp(address, 0);
-% Priority(0);
-% trialNoFlicker = struct( 'trigg', trigg, 'pressList', pressList, 'pressSecs', pressSecs );
-% 
-% trial_break(10, mfilename);
+Priority(1);
+outp(address, 101); WaitSecs(0.002); outp(address, 0);
+for i = 2:trialdur*144
+    
+    for k = 1:2
+        Screen('DrawTexture', scr, grating{1}, [], stimRect{k}, angle{k});
+        Screen('FrameRect', scr, 0, frameRect{k}, frameWidth);
+        Screen('DrawLines', scr, fixLines, fixWidth, 0, fixPoint{k});
+    end
+    Screen('Flip', scr);
+    [~, pressSecs(i), firstPress] = KbCheck;
+    pressList(i, 1:3) = firstPress(1, [l_key, u_key, r_key]);
+    if sum(pressList(i, 1:3) ~= pressList(i-1, 1:3))
+        outp(address, binaryVectorToDecimal(pressList(i, 1:3))+1);
+        WaitSecs(0.002); outp(address, 0);
+    end
+    
+    
+end
+outp(address, 99); WaitSecs(0.002); outp(address, 0);
+Priority(0);
+trialNoFlicker = struct( 'trigg', trigg, 'pressList', pressList, 'pressSecs', pressSecs );
+
+trial_break(10, mfilename);
 
 
 %% Try with Flicker
-% timestamps = zeros(1, trialdur*144);
-% timestamps(1) = GetSecs;
-% 
-% pressSecs = zeros([trialdur*144, 1]);
-% pressList = zeros([trialdur*144, 3]);
-% trigg = zeros([trialdur*144, 1]);
-% 
-% Priority(1);
-% outp(address, 102);
-% for i = 2:trialdur*144
-%     
-%     for k = 1:2
-%         Screen('DrawTexture', scr, grating{mod(floor(i/nframe{k}), 2) + 1}, [], stimRect{k}, angle{k});
-%         Screen('DrawLines', scr, fixLines, fixWidth, 0, fixPoint{k});
-%         Screen('FrameRect', scr, 0, frameRect{k}, frameWidth);
-%     end
-%     timestamps(i) = Screen('Flip', scr); %, timestamps(i-1)+0.8*frame_dur, 1);
-%     [~, pressSecs(i), firstPress] = KbCheck;
-%     pressList(i, 1:3) = firstPress(1, [l_key, u_key, r_key]);
-%     if sum(pressList(i, 1:3) ~= pressList(i-1, 1:3))
-%         outp(address, binaryVectorToDecimal(pressList(i, 1:3))+1);
-%         WaitSecs(0.002); outp(address, 0);
-%         trigg(i) = binaryVectorToDecimal(pressList(i, 1:3)) +1;
-%     end
-%     
-% end
-% outp(address, 99); WaitSecs(0.002); outp(address, 0);
-% Priority(0);
-% timediff = timestamps(2:end) - timestamps(1:end-1);
-% practiceFlicker = struct( 'trigg', trigg, 'pressList', pressList, 'pressSecs', pressSecs, 'timediff', timediff );
-% 
-% trial_break(10, mfilename);
+timestamps = zeros(1, trialdur*144);
+timestamps(1) = GetSecs;
 
+pressSecs = zeros([trialdur*144, 1]);
+pressList = zeros([trialdur*144, 3]);
+trigg = zeros([trialdur*144, 1]);
+
+Priority(1);
+outp(address, 102);
+for i = 2:trialdur*144
+    
+    for k = 1:2
+        Screen('DrawTexture', scr, grating{mod(floor(i/nframe{k}), 2) + 1}, [], stimRect{k}, angle{k});
+        Screen('DrawLines', scr, fixLines, fixWidth, 0, fixPoint{k});
+        Screen('FrameRect', scr, 0, frameRect{k}, frameWidth);
+    end
+    timestamps(i) = Screen('Flip', scr); %, timestamps(i-1)+0.8*frame_dur, 1);
+    [~, pressSecs(i), firstPress] = KbCheck;
+    pressList(i, 1:3) = firstPress(1, [l_key, u_key, r_key]);
+    if sum(pressList(i, 1:3) ~= pressList(i-1, 1:3))
+        outp(address, binaryVectorToDecimal(pressList(i, 1:3))+1);
+        WaitSecs(0.002); outp(address, 0);
+        trigg(i) = binaryVectorToDecimal(pressList(i, 1:3)) +1;
+    end
+    
+end
+outp(address, 99); WaitSecs(0.002); outp(address, 0);
+Priority(0);
+timediff = timestamps(2:end) - timestamps(1:end-1);
+practiceFlicker = struct( 'trigg', trigg, 'pressList', pressList, 'pressSecs', pressSecs, 'timediff', timediff );
+
+trial_break(10, mfilename);
 
 
 %% Make schedule
@@ -252,7 +252,7 @@ for currTrial = 1:j;
     Screen('FillRect', scr, luminances(luminanceOrder(currTrial)));
     for k = 1:2
         Screen('FrameRect', scr, 0, frameRect{k}, frameWidth);
-        DrawFormattedText(scr, 'Ready?\nPress & Hold "Up"\nTo Start', 'center', 'center', 255, [], [], [], [], [], textRect{k});
+        DrawFormattedText(scr, 'Ready?\nPress & Hold\n"Up" to Start', 'center', 'center', 255, [], [], [], [], [], textRect{k});
         Screen('DrawLines', scr, fixLines, fixWidth, 0, fixPoint{k});
     end
     Screen('Flip', scr);
