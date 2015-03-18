@@ -1,5 +1,5 @@
 function trial_break(break_time, invoking_function)
-global pxsize frameWidth ycen xcen fixWidth scr l_key u_key d_key r_key esc_key stimRect fixLines fixPoint frameRect;
+global frameWidth fixWidth scr ent_key esc_key stimRect fixLines fixPoint frameRect;
 KbQueueStart;
 for lapsedTime = 0:break_time
     if strcmp(invoking_function, 'binocular_ssvep') || strcmp(invoking_function, 'validate_stimuli')
@@ -16,6 +16,8 @@ Screen('Flip', scr);
 
 if pressed(esc_key)
     error('Interrupted in the break');
+elseif pressed(ent_key)
+    break
 end
 
 WaitSecs(1);
