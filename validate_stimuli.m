@@ -6,8 +6,8 @@ global pxsize frameWidth ycen xcen fixWidth scr l_key u_key d_key r_key esc_key 
 try
 %% Basics
 % subject info and screen info
-ID ='test';% input('Participant ID? ', 's');
-diagnosis =3;% input('Diagnosis? ');
+ID = input('Participant ID? ', 's');
+% diagnosis = input('Diagnosis? ');
 randState = rng('shuffle');
 tstamp = clock;
 if ~isdir( fullfile(pwd, 'Results', mfilename, num2str(diagnosis)) )
@@ -65,8 +65,8 @@ Screen('BlendFunction', scr, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 % Frame Duration
 frame_dur = 1/144;
-% Trialtime in seconds
-trialdur = 5;
+% Trialtime in seconds <=======
+trialdur = 16;
 % trialtime in frames
 trialframes = trialdur / frame_dur;
 
@@ -320,7 +320,6 @@ catch err
     PsychPortAudio('Close');
     save(savefile);
     Priority(0);
-    save('temp_binocular_ssvep.mat');
     rethrow(err);
 end
 end
