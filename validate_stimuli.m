@@ -7,7 +7,7 @@ try
 %% Basics
 % subject info and screen info
 ID = input('Participant ID? ', 's');
-% diagnosis = input('Diagnosis? ');
+diagnosis = input('Diagnosis? ');
 randState = rng('shuffle');
 tstamp = clock;
 if ~isdir( fullfile(pwd, 'Results', mfilename, num2str(diagnosis)) )
@@ -16,17 +16,13 @@ end
 savefile = fullfile(pwd, 'Results', mfilename, num2str(diagnosis), [sprintf('%02d-%02d-%02d-%02d%02d-', tstamp(1), tstamp(2), tstamp(3), tstamp(4), tstamp(5)), ID, '.mat']);
 
 % Store script content(s) for posterity
-allScripts = ls('*.m');
-for scriptIndex = 1:size(allScripts, 1)
-    scripts.name{scriptIndex} = allScripts(scriptIndex, :);
-    scripts.content{scriptIndex} = fileread(allScripts(scriptIndex, :));
-end
+scripts = savescripts;
 
 
 scr_diagonal = 24;
 scr_distance = 60;
 scr_background = 127.5;
-scr_no = 0;
+scr_no = 1;
 scr_dimensions = Screen('Rect', scr_no);
 xcen = scr_dimensions(3)/2;
 ycen = scr_dimensions(4)/2;
@@ -204,7 +200,7 @@ outp(address, 102);
 for i = 2:trialdur*144
     
     for k = 1:2
-        Screen('DrawTexture', scr, grating{mod(floor(i/nframe{k}), 2) + 1}, [], stimRect{k}, angle{k});
+        Screen('DrawTexture', scr, grating{1, mod(floor(i/nframe{k}), 2) + 1}, [], stimRect{k}, angle{k});
         Screen('DrawLines', scr, fixLines, fixWidth, 0, fixPoint{k});
         Screen('FrameRect', scr, 0, frameRect{k}, frameWidth);
     end
@@ -317,7 +313,7 @@ error('End');
 catch err
 %% Catch
     sca;
-    PsychPortAudio('Close');
+%     PsychPortAudio('Close');
     save(savefile);
     Priority(0);
     rethrow(err);
