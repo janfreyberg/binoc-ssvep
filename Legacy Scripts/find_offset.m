@@ -1,3 +1,4 @@
+function find_offset()
 % global pxsize frameWidth fixWidth ycen xcen scr l_key u_key d_key r_key esc_key stimRect fixLines fixPoint;
 offset = pxsize;
 found = 0;
@@ -86,3 +87,4 @@ found = 0;
 
             end
         end
+end
