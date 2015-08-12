@@ -18,6 +18,11 @@ $RECYCLE.BIN/
 *.mat
 *.asv
 
+#Images of Results
+*.png
+*.svg
+*.eps
+
 # Windows shortcuts
 *.lnk
 

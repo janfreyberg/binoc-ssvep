@@ -3,6 +3,7 @@ try
 %% Setup!
 %#ok<*AGROW>
 %#ok<*SAGROW>
+ %#ok<*NASGU>
 clearvars;
 clc;
 load('buttons_freqs.mat');
@@ -34,7 +35,7 @@ end
 remove_subject{1} = false(n{1}, 1);
 remove_subject{2} = false(n{2}, 1);
 % Electrodes
-electrodes = 29:30;
+electrodes = [27, 29, 30, 64];
 
 for group = 1:2
 for subject = 1:n{group}
@@ -43,7 +44,7 @@ for subject = 1:n{group}
     official_ID = str2double(fileID(end-16:end-13));
     cfg = [];
     cfg.dataset = fileID;
-    cfg.channel = 1:64;
+    cfg.channel = electrodes;
     cfg.trialdef.eventtype = 'STATUS';
     cfg.trialfun = 'ft_trialfun_general';
     cfg.trialdef.prestim = 3;
@@ -74,7 +75,7 @@ for subject = 1:n{group}
     
     %% Behavioural Analysis (from triggers)
     button_data = cell(1, 16);
-    load('buttons_freqs.mat');
+    load('buttons_freqs.mat', 'buttons_freqs');
     
     % Extract the relevant sequence
     cfg_buttons = [];
@@ -138,11 +139,11 @@ for subject = 1:n{group}
     end
     
     dom_num{group}(subject, 1) = numel(all_dom);
-%     if dom_num{group}(subject, 1) < 20
-%         remove_subject{group}(subject) = 1;
-%     end
+    if dom_num{group}(subject, 1) < 20
+        remove_subject{group}(subject) = 1;
+    end
     
-    if ~isempty(all_cw) && ~isempty(all_cw)
+    if ~isempty(all_cw) && ~isempty(all_ccw)
         bias{group}(subject, 1) = ttest2(all_cw, all_ccw);
     else
         bias{group}(subject, 1) = NaN;
@@ -156,18 +157,15 @@ for subject = 1:n{group}
     mean_dom{group}(subject, 1) = mean(all_dom);
     median_dom{group}(subject, 1) = median(all_dom);
     
-    %% SSVEP Analysis
-    
-    % preprocessing
-    
-    
+    %% preprocessing
     for eventvalue = 201:216
         cfg_preproc{eventvalue} = cfg;
+        cfg_preproc{eventvalue}.channel = electrodes;
         cfg_preproc{eventvalue}.continuous = 'yes';
         cfg_preproc{eventvalue}.demean    = 'yes';
-        cfg_preproc{eventvalue}.detrend = 'yes';
-        cfg_preproc{eventvalue}.reref = 'yes';
-        cfg_preproc{eventvalue}.refchannel = 1:64;
+        cfg_preproc{eventvalue}.detrend = 'no';
+        cfg_preproc{eventvalue}.reref = 'no';
+%         cfg_preproc{eventvalue}.refchannel = 1:64;
         cfg_preproc{eventvalue}.trl = cfg.trl( cfg.trl(:,4)==eventvalue, : );
     end
     
@@ -175,40 +173,26 @@ for subject = 1:n{group}
         trial_data{eventvalue-200} = ft_preprocessing(cfg_preproc{eventvalue});
     end
     
-    % TFR
-    
-%     freq_res = 0.4;
-    
+    %% TFR
     cfg_tfr = [];
     cfg_tfr.method = 'wavelet';
     cfg_tfr.width = 16;
     cfg_tfr.foi = [28.8, 36];
     cfg_tfr.toi = -3:0.05:12;
-%     
-%     cfg_fft = [];
-%     cfg_fft.method = 'mtmfft';
-%     cfg.foi = [28.8, 36];
-    
     parfor eventvalue = 1:16
         freqs{eventvalue} = ft_freqanalysis(cfg_tfr, trial_data{eventvalue});
     end
     
     
+    %% Average Over Mixed and Dominant Percepts
     
-    
-    %% average across dominant and mixed percepts
-    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-    for i = 1:10
-        postWhole_dom_binned{i} = [];
-        postWhole_sup_binned{i} = [];
-    end
+    shiftsize = -0.5; % The time you want EEG data to be shifted relative to Behavioural Data
     
     postWhole_dom = [];
     postWhole_sup = [];
     postWhole_mix = [];
-    byFreq_28 = zeros(3, 16);
-    byFreq_36 = zeros(3, 16);
+%     byFreq_28 = zeros(3, 16);
+%     byFreq_36 = zeros(3, 16);
     
     for trialNo = 1:16
         
@@ -225,16 +209,12 @@ for subject = 1:n{group}
         end
         
         
-        
-        shiftsize = -0.5;
         % First Whenever Freq 36 Was Dominant
-        [sup_28, dom_36] = average_across_timebins(freqs{trialNo}, 29:30, percepts(trialNo).start(ssvep_index_36)+shiftsize, percepts(trialNo).duration(ssvep_index_36));
-%         [sup_28, dom_36] = average_across_timebins(freqs{trialNo}, 29:30, 1, 11);
+        [sup_28, dom_36] = average_across_timebins(freqs{trialNo}, electrodes, percepts(trialNo).start(ssvep_index_36)+shiftsize, percepts(trialNo).duration(ssvep_index_36));
         % Now Whenever Freq 28 Was Dominant
-        [dom_28, sup_36] = average_across_timebins(freqs{trialNo}, 29:30, percepts(trialNo).start(ssvep_index_28)+shiftsize, percepts(trialNo).duration(ssvep_index_28));
-%         [dom_28, sup_36] = average_across_timebins(freqs{trialNo}, 29:30, 1, 11);
+        [dom_28, sup_36] = average_across_timebins(freqs{trialNo}, electrodes, percepts(trialNo).start(ssvep_index_28)+shiftsize, percepts(trialNo).duration(ssvep_index_28));
         % Now whenever people reported mixture
-        [mix_28, mix_36] = average_across_timebins(freqs{trialNo}, 29:30, percepts(trialNo).start(ssvep_index_mix)+shiftsize, percepts(trialNo).duration(ssvep_index_mix));
+        [mix_28, mix_36] = average_across_timebins(freqs{trialNo}, electrodes, percepts(trialNo).start(ssvep_index_mix)+shiftsize, percepts(trialNo).duration(ssvep_index_mix));
         
         diff_mix = mix_28 - mix_36;
         
@@ -246,10 +226,10 @@ for subject = 1:n{group}
         for i = 1:10
             
             
-            [sup_28, dom_36] = average_across_timebins(freqs{trialNo}, 29:30,...
+            [sup_28, dom_36] = average_across_timebins(freqs{trialNo}, electrodes,...
                 percepts(trialNo).start(ssvep_index_36)+shiftsize + percepts(trialNo).duration(ssvep_index_36)*(i-1)/10, percepts(trialNo).duration(ssvep_index_36)*0.1 );
             
-            [dom_28, sup_36] = average_across_timebins(freqs{trialNo}, 29:30,...
+            [dom_28, sup_36] = average_across_timebins(freqs{trialNo}, electrodes,...
                 percepts(trialNo).start(ssvep_index_28)+shiftsize + percepts(trialNo).duration(ssvep_index_28)*(i-1)/10, percepts(trialNo).duration(ssvep_index_28)*0.1 );
             
             postWhole_dom_binned{i} = [postWhole_dom_binned{i}, (dom_36), (dom_28)];
@@ -267,8 +247,16 @@ for subject = 1:n{group}
         sup_bin_av{group}(subject, i) = mean(postWhole_sup_binned{i});
     end
     
-    byFreq_av_28{group}(subject, 1:3) = nanmean(byFreq_28(:, :), 2)';
-    byFreq_av_36{group}(subject, 1:3) = nanmean(byFreq_36(:, :), 2)';
+%     byFreq_av_28{group}(subject, 1:3) = nanmean(byFreq_28(:, :), 2)';
+%     byFreq_av_36{group}(subject, 1:3) = nanmean(byFreq_36(:, :), 2)';
+    
+    %% Average Time Bins Across Mixed and Dominant Percepts
+    nbins = 10;
+    for i = 1:nbins;
+        postWhole_dom_binned{i} = [];
+        postWhole_sup_binned{i} = [];
+    end
+
     
     %% Analyse the time IMMEDIATELY before and after a dominant percept
     % prepare variables
@@ -296,9 +284,9 @@ for subject = 1:n{group}
         % 500 ms BEFORE dominant percepts
         
         % Freq 36 Was Dominant
-        [sup_28, dom_36] = average_across_timebins(freqs{trialNo}, 29:30, percepts(trialNo).start(ssvep_index_36), -0.5*ones(size(percepts(trialNo).start(ssvep_index_36))));
+        [sup_28, dom_36] = average_across_timebins(freqs{trialNo}, electrodes, percepts(trialNo).start(ssvep_index_36), -0.5*ones(size(percepts(trialNo).start(ssvep_index_36))));
         % Freq 28 Was Dominant
-        [dom_28, sup_36] = average_across_timebins(freqs{trialNo}, 29:30, percepts(trialNo).start(ssvep_index_28), -0.5*ones(size(percepts(trialNo).start(ssvep_index_28))));
+        [dom_28, sup_36] = average_across_timebins(freqs{trialNo}, electrodes, percepts(trialNo).start(ssvep_index_28), -0.5*ones(size(percepts(trialNo).start(ssvep_index_28))));
         
         pre500_dom = [pre500_dom, dom_36, dom_28];
         pre500_sup = [pre500_sup, sup_36, sup_28];
@@ -307,9 +295,9 @@ for subject = 1:n{group}
         
         % Freq 36 Was Dominant
         [sup_28, dom_36] = ...
-            average_across_timebins(freqs{trialNo}, 29:30, percepts(trialNo).start(ssvep_index_36) + percepts(trialNo).duration(ssvep_index_36), 0.5*ones(size(percepts(trialNo).start(ssvep_index_36))));
+            average_across_timebins(freqs{trialNo}, electrodes, percepts(trialNo).start(ssvep_index_36) + percepts(trialNo).duration(ssvep_index_36), 0.5*ones(size(percepts(trialNo).start(ssvep_index_36))));
         % Freq 28 Was Dominant
-        [dom_28, sup_36] = average_across_timebins(freqs{trialNo}, 29:30, percepts(trialNo).start(ssvep_index_28) + percepts(trialNo).duration(ssvep_index_28), 0.5*ones(size(percepts(trialNo).start(ssvep_index_28))));
+        [dom_28, sup_36] = average_across_timebins(freqs{trialNo}, electrodes, percepts(trialNo).start(ssvep_index_28) + percepts(trialNo).duration(ssvep_index_28), 0.5*ones(size(percepts(trialNo).start(ssvep_index_28))));
 
         
         post500_dom = [post500_dom, dom_36, dom_28];
@@ -322,44 +310,32 @@ for subject = 1:n{group}
     post500_dom_av{group}(subject, 1) = nanmean( post500_dom );
     post500_sup_av{group}(subject, 1) = nanmean( post500_sup );
     
-    %% Analyse a timecourse across the dominant time
-    
-    
-    %% Analyse how often the difference between the two freqs is above or below a cutoff
+    %% Analyse Deviation from mean
     
     concat_diffs = [];
     concat_temp_powspctrm = [];
     for trialNo = 1:16
         
         % Average across electrodes
-        temp_powspctrm = nanmean( freqs{trialNo}.powspctrm( electrodes, 1:2, : ), 1 );
-        % Normalise based on seconds 1 - 12
+        temp_powspctrm = nanmean( freqs{trialNo}.powspctrm( :, 1:2, : ), 1 );
+        
         for frequency_of_interest = 1:2
-            mu = nanmean( temp_powspctrm( 1, frequency_of_interest, freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12 ), 3 );
-            sd = nanstd( temp_powspctrm( 1, frequency_of_interest, freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12 ), [], 3 );
             
-            byTrial_stability{group}(subject, frequency_of_interest, trialNo) = sd/mu;
-            byTrial_mu{group}(subject, frequency_of_interest, trialNo) = mu;
-            byTrial_sd{group}(subject, frequency_of_interest, trialNo) = sd;
+            mu = nanmean( temp_powspctrm( 1, frequency_of_interest, freqs{trialNo}.time > 0.5 & freqs{trialNo}.time < 12 ), 3 );
+            sd = nanstd( temp_powspctrm( 1, frequency_of_interest, freqs{trialNo}.time > 0.5 & freqs{trialNo}.time < 12 ), [], 3 );
             
-            % Z-Score Normalisation
-            
-            
+            % Normalisation
             temp_powspctrm( 1, frequency_of_interest, :) = (temp_powspctrm( 1, frequency_of_interest, :)) / mu;
+            
         end
+        
         diff_powspctrm = permute( temp_powspctrm( 1, 1, : ) - temp_powspctrm( 1, 2, : ), [1, 3, 2] );
-        
-        % Winner Take All Index
-        concat_temp_powspctrm = [concat_temp_powspctrm, permute(temp_powspctrm( 1, :, freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12 ), [2, 3, 1])];
-        
-        % average diff during mixture
-%         [freq_28, freq_36] = average_across_timebins(freqs{trialNo}, 1, percepts(trialNo).start(ssvep_index_36)+shiftsize, percepts(trialNo).duration(ssvep_index_36));
-        
-        concat_diffs = [concat_diffs, diff_powspctrm(1, freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)];
+        concat_temp_powspctrm = [concat_temp_powspctrm, permute(temp_powspctrm( 1, :, freqs{trialNo}.time > 0.5 & freqs{trialNo}.time < 12 ), [2, 3, 1])];
+        concat_diffs = [concat_diffs, diff_powspctrm(1, freqs{trialNo}.time > 0.5 & freqs{trialNo}.time < 12)];
     end
+    
     sd_of_diff{group}(subject, 1) = nanstd(concat_diffs);
     wta{group}(subject, 1) = nanmean( abs(concat_temp_powspctrm(1, :)-concat_temp_powspctrm(2, :))./(concat_temp_powspctrm(1, :)+concat_temp_powspctrm(2, :)) );
-    
     
     %% Analyse Correlation between frequencies
     % concatenate each trial sequence, excluding the first second of a
@@ -368,13 +344,12 @@ for subject = 1:n{group}
     all_samples_28 = [];
     for trialNo = 1:16
         % scale each frequency to the trial mean
-        mean_36 = mean( mean(freqs{trialNo}.powspctrm(29:30, 2, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ), 3);
-        mean_28 = mean( mean(freqs{trialNo}.powspctrm(29:30, 1, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ), 3);
-        
-%         normalised_36 = permute( mean(freqs{trialNo}.powspctrm(29:30, 2, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ) / mean_36, [3, 1, 2]);
-%         normalised_28 = permute( mean(freqs{trialNo}.powspctrm(29:30, 1, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ) / mean_28, [3, 1, 2]);
-        not_normalised_36 = permute( mean(freqs{trialNo}.powspctrm(29:30, 2, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ), [3, 1, 2]);
-        not_normalised_28 = permute( mean(freqs{trialNo}.powspctrm(29:30, 1, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ), [3, 1, 2]);
+%         mean_36 = mean( mean(freqs{trialNo}.powspctrm(:, 2, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ), 3);
+%         mean_28 = mean( mean(freqs{trialNo}.powspctrm(:, 1, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ), 3);
+%         normalised_36 = permute( mean(freqs{trialNo}.powspctrm(electrodes, 2, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ) / mean_36, [3, 1, 2]);
+%         normalised_28 = permute( mean(freqs{trialNo}.powspctrm(electrodes, 1, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ) / mean_28, [3, 1, 2]);
+        not_normalised_36 = permute( mean(freqs{trialNo}.powspctrm(:, 2, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ), [3, 1, 2]);
+        not_normalised_28 = permute( mean(freqs{trialNo}.powspctrm(:, 1, (freqs{trialNo}.time > 1 & freqs{trialNo}.time < 12)), 1 ), [3, 1, 2]);
         
         all_samples_36 = [all_samples_36; not_normalised_36];
         all_samples_28 = [all_samples_28; not_normalised_28];
@@ -384,6 +359,8 @@ for subject = 1:n{group}
     
 end
 end
+
+return;
 
 catch err
     disp(fileID);
@@ -581,7 +558,7 @@ end
 
 end
 
-function [freq28, freq36] = average_across_timebins(freqs, electrodes, start_times, durations)
+function [freq28, freq36] = average_across_timebins(freqs, ~, start_times, durations)
 %% [freq28, freq36] = average_across_timebins(freqs, electrodes, start_times, durations  )
 n_bins = numel(start_times);
 
@@ -595,7 +572,7 @@ end
 % DECIDE WHAT TO USE
 
 % Average across electrodes
-temp_powspctrm = nanmean( freqs.powspctrm(electrodes, :, :), 1 );
+temp_powspctrm = nanmean( freqs.powspctrm(:, :, :), 1 );
 
 % Decide what time-segment of the trial to use for normalisation
 % this ignores the first second for obvious reasons
