@@ -20,8 +20,8 @@
     e(2) = nansem(postWhole_mix_av{group}(~remove_subject{group}));
     e(3) = nansem(postWhole_sup_av{group}(~remove_subject{group}));
     
-    h(group) = errorbar(x([1 3]), y([1 3]), e([1 3]), 'Color', group_colours{group}, 'LineWidth', 2, 'Marker', 'o', 'MarkerFaceColor', group_colours{group});
-%     h(group) = errorbar(x, y, e, 'Color', group_colours{group}, 'LineWidth', 2, 'Marker', 'o', 'MarkerFaceColor', group_colours{group});
+%     h(group) = errorbar(x([1 3]), y([1 3]), e([1 3]), 'Color', group_colours{group}, 'LineWidth', 2, 'Marker', 'o', 'MarkerFaceColor', group_colours{group});
+    h(group) = errorbar(x, y, e, 'Color', group_colours{group}, 'LineWidth', 2, 'Marker', 'o', 'MarkerFaceColor', group_colours{group});
     
     
     

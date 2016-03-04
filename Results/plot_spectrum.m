@@ -16,7 +16,7 @@ for group = 1:2;
     %         subplot(2, 1, iFreq);
     ylabel('Amplitude ( microvolt ^2 )', 'FontSize', 14);
 %     ylim([0, 0.1]);
-    xlim([24.8 40]);
+%     xlim([24.8 40]);
     hold on;
     
     x = freqs.freq;
@@ -38,7 +38,8 @@ end
 legend(h, {'CON', 'ASC'});
 
 
-
+plot([21.6, 21.6], get(gca, 'ylim'), 'Color', 'k');
+plot([43.2, 43.2], get(gca, 'ylim'), 'Color', 'k');
 
 xlabel('Frequency', 'FontSize', 14);
 

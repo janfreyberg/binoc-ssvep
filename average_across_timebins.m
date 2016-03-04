@@ -2,6 +2,10 @@ function [freq28, freq36] = average_across_timebins(freqs, ~, start_times, durat
 %% [freq28, freq36] = average_across_timebins(freqs, electrodes, start_times, durations  )
 n_bins = numel(start_times);
 
+if numel(durations) == 1
+    durations = durations * ones(size(start_times));
+end
+
 if n_bins == 0
     freq28 = [];
     freq36 = [];
@@ -16,11 +20,22 @@ end
 baseline = freqs.time > -3 & freqs.time < 0;
 trialtime = freqs.time > 0.5 & freqs.time < 12;
 
+
 for iElec = 1:size(freqs.powspctrm, 1)
-    for iFreq = 1:size(freqs.powspctrm, 2)
-%         freqs.powspctrm(iElec, iFreq, :) = freqs.powspctrm(iElec, iFreq, :)-nanmean( freqs.powspctrm(iElec, iFreq, baseline));
-        freqs.powspctrm(iElec, iFreq, :) = freqs.powspctrm(iElec, iFreq, :)/nanmean( freqs.powspctrm(iElec, iFreq, trialtime) );
-    end
+for iFreq = 1:size(freqs.powspctrm, 2)
+        
+outliers = false(size(freqs.powspctrm(iElec, iFreq, :)));
+        
+outliers( freqs.powspctrm(iElec, iFreq, :) > mean(freqs.powspctrm(iElec, iFreq, :)) + 2*std(freqs.powspctrm(iElec, iFreq, :)) |...
+            freqs.powspctrm(iElec, iFreq, :) < mean(freqs.powspctrm(iElec, iFreq, :)) - 2*std(freqs.powspctrm(iElec, iFreq, :)))...
+            =true;
+% freqs.powspctrm(iElec, iFreq, outliers) = NaN;
+        
+% freqs.powspctrm(iElec, iFreq, :) = freqs.powspctrm(iElec, iFreq, :)/nanmean( freqs.powspctrm(iElec, iFreq, trialtime) );
+% freqs.powspctrm(iElec, iFreq, :) = (freqs.powspctrm(iElec, iFreq, :)-nanmedian(freqs.powspctrm(iElec, iFreq, trialtime)))...
+%                                             /(nanstd(freqs.powspctrm(iElec, iFreq, trialtime)));
+        
+end
 end
 
 % Average across electrodes
@@ -68,25 +83,25 @@ for timeSlice = 1:n_bins
     % %%%%%%%%%%%%%%%%%%
         % cut out relevant sample
         samples = ...
-            mean(temp_powspctrm(1, 1, (freqs.time > t_0 & freqs.time < t_end)), 1);
+            nanmean(temp_powspctrm(1, 1, (freqs.time > t_0 & freqs.time < t_end)), 1);
 %         samples = ...
 %             padarray(samples, [0, 0, 20-size(samples, 3)], NaN, 'post');
 
         % reshape
-        freq28 = [freq28, mean((permute(samples, [1, 3, 2])), 2)];
+        freq28 = [freq28, (permute(samples, [1, 3, 2]))];
 
     % %%%%%%%%%%%%%%%%%%
     % Frequency 36
     % %%%%%%%%%%%%%%%%%%
         % cut out relevant sample
         samples = ...
-            mean(temp_powspctrm(1, 2, (freqs.time > t_0 & freqs.time < t_end)), 1);
+            nanmean(temp_powspctrm(1, 2, (freqs.time > t_0 & freqs.time < t_end)), 1);
 %         samples = ...
 %             padarray(samples, [0, 0, 20-size(samples, 3)], NaN, 'post');
 
 
         % reshape
-        freq36 = [freq36, mean((permute(samples, [1, 3, 2])), 2)];
+        freq36 = [freq36, (permute(samples, [1, 3, 2]))];
 
 end
 end

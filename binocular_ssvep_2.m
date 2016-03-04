@@ -1,7 +1,7 @@
-function binocular_ssvep
+function binocular_ssvep_2
 
 clear all
-global pxsize frameWidth ycen xcen fixWidth scr l_key u_key d_key r_key esc_key stimRect fixLines fixPoint frameRect;
+global pxsize frameWidth ycen xcen fixWidth scr l_key u_key d_key r_key esc_key ent_key stimRect fixLines fixPoint frameRect;
 
 try
 %% Get basic info, set filename.
@@ -81,9 +81,9 @@ Screen('BlendFunction', scr, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 pxsize = visual_angle2pixel(6, scr_diagonal, scr_distance, scr_no);
 
 % Make Stimuli
-grating1 = make_grating(pxsize, cycpdegree*stimsize, contr, 0);
+grating1 = make_grating(pxsize, cycpdegree*stimsize, contr, 0, scr_background);
 grating{1} = Screen('MakeTexture', scr, grating1);
-grating2 = make_grating(pxsize, cycpdegree*stimsize, -contr, 0);
+grating2 = make_grating(pxsize, cycpdegree*stimsize, -contr, 0, scr_background);
 grating{2} = Screen('MakeTexture', scr, grating2);
 
 % Vergence Cues
@@ -135,8 +135,8 @@ pressSecs = zeros([trialdur*144, 1]);
 pressList = zeros([trialdur*144, 3]);
 trigg = zeros([trialdur*144, 1]);
 
-Priority(1);
-outp(address, 101); WaitSecs(0.002); outp(address, 0);
+% Priority(1);
+% outp(address, 101); WaitSecs(0.002); outp(address, 0);
 for i = 2:trialdur*144
     
     for k = 1:2
@@ -154,8 +154,8 @@ for i = 2:trialdur*144
     
     
 end
-outp(address, 99); WaitSecs(0.002); outp(address, 0);
-Priority(0);
+% outp(address, 99); WaitSecs(0.002); outp(address, 0);
+% Priority(0);
 trialNoFlicker = struct( 'trigg', trigg, 'pressList', pressList, 'pressSecs', pressSecs );
 
 trial_break(10, mfilename);
@@ -169,7 +169,7 @@ pressList = zeros([trialdur*144, 3]);
 trigg = zeros([trialdur*144, 1]);
 
 Priority(1);
-outp(address, 102);
+% outp(address, 102);
 for i = 2:trialdur*144
     
     for k = 1:2
@@ -187,7 +187,7 @@ for i = 2:trialdur*144
     end
     
 end
-outp(address, 99); WaitSecs(0.002); outp(address, 0);
+% outp(address, 99); WaitSecs(0.002); outp(address, 0);
 Priority(0);
 timediff = timestamps(2:end) - timestamps(1:end-1);
 practiceFlicker = struct( 'trigg', trigg, 'pressList', pressList, 'pressSecs', pressSecs, 'timediff', timediff );
@@ -222,8 +222,8 @@ for currTrial = 1:j;
     pressList = zeros([trialdur*144, 3]);
     trigg = zeros([trialdur*144, 1]);
     
-    Priority(1);
-    outp(address, 200+currTrial); WaitSecs(0.002); outp(address, 0);
+%     Priority(1);
+%     outp(address, 200+currTrial); WaitSecs(0.002); outp(address, 0);
     for i = 2:trialdur*144
 
         for k = 1:2
@@ -241,14 +241,20 @@ for currTrial = 1:j;
         end
 
     end
-    outp(address, 99); WaitSecs(0.002); outp(address, 0);
-    Priority(0);
+%     outp(address, 99); WaitSecs(0.002); outp(address, 0);
+%     Priority(0);
     
     timediff = timestamps(2:end) - timestamps(1:end-1);
     trialData(currTrial) = struct( 'trigg', trigg, 'pressList', pressList, 'pressSecs', pressSecs, 'timediff', timediff );
     trial_break(10, mfilename);
 end
-error('End');
+
+%% Finish
+sca;
+PsychPortAudio('Close');
+save(savefile);
+Priority(0);
+save('temp_binocular_ssvep.mat');
 
 catch err
 %% Catch
@@ -323,7 +329,7 @@ KbQueueStop;
 end
 
 function find_offset()
-% global pxsize frameWidth fixWidth ycen xcen scr l_key u_key d_key r_key esc_key stimRect fixLines fixPoint;
+global pxsize frameWidth frameRect fixWidth ycen xcen scr l_key u_key d_key r_key esc_key ent_key stimRect fixLines fixPoint;
 offset = pxsize;
 found = 0;
 % Firstly, present white & black circles to avoid merging and find

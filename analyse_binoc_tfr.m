@@ -22,6 +22,8 @@ filenames{2} = dir(fullfile(file_directory, '*ASC*BinSSVEP.bdf'));
 n{1} = size(filenames{1}, 1);
 n{2} = size(filenames{2}, 1);
 
+% n{1} = 15;
+
 %% Global Variables
 trial_dur = 12;
 plotting = 0;
@@ -32,13 +34,13 @@ plotting = 0;
 %         warning(par_comp_err.message);
 %     end
 % end
-remove_subject{1} = false(n{1}, 1);
-remove_subject{2} = false(n{2}, 1);
 % Electrodes
-electrodes = [27, 29, 30, 64];
+electrodes = [29];
 % electrodes = 1:64;
-shiftsize = -0; % The time you want EEG data to be shifted relative to Behavioural Data
 
+
+shiftsize = -0; % The time you want EEG data to be shifted relative to Behavioural Data
+minpercdur = 0.5;
 
 %% Loop Through Group and Subjects
 for group = 1:1
@@ -89,6 +91,7 @@ for subject = 1:n{group}
     cfg_buttons.trialfun = 'ft_trialfun_general';
     try
         cfg_buttons = ft_definetrial(cfg_buttons);
+        remove_subject{group}(subject) = 0;
     catch button_define_error
         warning(button_define_error.message);
         remove_subject{group}(subject) = 1;
@@ -170,17 +173,25 @@ for subject = 1:n{group}
         cfg_preproc.demean    = 'yes';
         cfg_preproc.detrend = 'no';
         cfg_preproc.reref = 'yes';
-        cfg_preproc.refchannel = 1:64;
+        cfg_preproc.refchannel = [27 28 64 30];
         all_data = ft_preprocessing(cfg_preproc);
     
+        
     %% TFR
     cfg_tfr = [];
-    cfg_tfr.method = 'wavelet';
     cfg_tfr.channel = electrodes;
-    cfg_tfr.width = 16;
     cfg_tfr.foi = [28.8, 36];
+%     cfg_tfr.foi = [21.61, 21.59]; %intermodulation freqs
     cfg_tfr.toi = -3:0.05:12;
     cfg_tfr.keeptrials = 'yes'; % this makes sure all trials are separate
+    
+    cfg_tfr.method = 'mtmconvol';
+    cfg_tfr.taper = 'hanning';
+    cfg_tfr.t_ftimwin = 0.3 * ones(size(cfg_tfr.foi));
+    
+%     cfg_tfr.method = 'wavelet';
+%     cfg_tfr.width = 16;
+    
     
     freqs = ft_freqanalysis(cfg_tfr, all_data);
     
@@ -194,14 +205,14 @@ for subject = 1:n{group}
     for trialNo = 1:16
         
         if isequal(buttons_freqs(official_ID).flickerOrder(:, trialNo), buttons_freqs(official_ID).angleOrder(:, trialNo))
-            ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
-            ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
-            ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
+            ssvep_index_36 = percepts(trialNo).start > 0.5 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
+            ssvep_index_28 = percepts(trialNo).start > 0.5 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
+            ssvep_index_mix = percepts(trialNo).start > 0.5 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
             all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
         else
-            ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
-            ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
-            ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
+            ssvep_index_28 = percepts(trialNo).start > 0.5 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
+            ssvep_index_36 = percepts(trialNo).start > 0.5 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
+            ssvep_index_mix = percepts(trialNo).start > 0.5 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
             all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
         end
         
@@ -236,18 +247,24 @@ for subject = 1:n{group}
     postWhole_dom = [];
     postWhole_sup = [];
     postWhole_mix = [];
+    alldom36 = [];
+    alldom28 = [];
+    allsup36 = [];
+    allsup28 = [];
+    allmix36=[];
+    allmix28=[];
     
     for trialNo = 1:16
-        
+        clear sup_28 dom_28 dom_36 sup_36 mix_28 mix_36
         if isequal(buttons_freqs(official_ID).flickerOrder(:, trialNo), buttons_freqs(official_ID).angleOrder(:, trialNo))
-            ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
-            ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
-            ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
+            ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).cw_index;
+            ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).ccw_index;
+            ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).mix_index;
             all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
         else
-            ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
-            ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
-            ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
+            ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).cw_index;
+            ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).ccw_index;
+            ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).mix_index;
             all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
         end
         
@@ -261,15 +278,48 @@ for subject = 1:n{group}
         % Now whenever people reported mixture
         [mix_28, mix_36] = average_across_timebins(temp_freqs, electrodes, percepts(trialNo).start(ssvep_index_mix)+shiftsize, percepts(trialNo).duration(ssvep_index_mix));
         
-        diff_mix = mix_28 - mix_36;
+        % First Whenever Freq 36 Was Dominant
+        [sup_28, dom_36] = average_across_timebins(temp_freqs, electrodes, percepts(trialNo).start(ssvep_index_36)+shiftsize, minpercdur);
+        % Now Whenever Freq 28 Was Dominant
+        [dom_28, sup_36] = average_across_timebins(temp_freqs, electrodes, percepts(trialNo).start(ssvep_index_28)+shiftsize, minpercdur);
+        % Now whenever people reported mixture
+        [mix_28, mix_36] = average_across_timebins(temp_freqs, electrodes, percepts(trialNo).start(ssvep_index_mix)+shiftsize, minpercdur);
+        
+        
+%         dom_over_sup{group}(subject, trialNo) = mean([nanmean(dom_36)./nanmean(sup_36), nanmean(dom_28)./nanmean(sup_28)]);
+%         dom_over_mix{group}(subject, trialNo) = mean([nanmean(dom_36)./nanmean(mix_36), nanmean(dom_28)./nanmean(mix_28)]);
+%         sup_over_mix{group}(subject, trialNo) = mean([nanmean(sup_36)./nanmean(mix_36), nanmean(sup_28)./nanmean(mix_28)]);
+        
+        
+        
         
         
         postWhole_dom = [postWhole_dom, (dom_36), (dom_28)];
         postWhole_sup = [postWhole_sup, (sup_36), (sup_28)];
         postWhole_mix = [postWhole_mix, (mix_28), (mix_36)];
         
-        
+        alldom36=[alldom36, dom_36];
+        alldom28=[alldom28, dom_28];
+        allsup36=[allsup36, sup_36];
+        allsup28=[allsup28, sup_28];
+        allmix36=[allmix36, mix_36];
+        allmix28=[allmix28, mix_28];
     end
+    
+%     xksd = linspace(-0.5, 5, 500);
+%     figure; hold on;
+%     plot(xksd, ksdensity(alldom36, xksd), '-', 'Color', [0.2 0.2 0.8], 'LineWidth', 2);
+%     plot(xksd, ksdensity(allmix36, xksd), '--', 'Color', [0.2 0.2 0.8], 'LineWidth', 2);
+%     plot(xksd, ksdensity(allsup36, xksd), ':', 'Color', [0.2 0.2 0.8], 'LineWidth', 2);
+%     
+%     plot(xksd, ksdensity(alldom28, xksd), '-', 'Color', [0.2 0.8 0.2], 'LineWidth', 2);
+%     plot(xksd, ksdensity(allmix28, xksd), '--', 'Color', [0.2 0.8 0.2], 'LineWidth', 2);
+%     plot(xksd, ksdensity(allsup28, xksd), ':', 'Color', [0.2 0.8 0.2], 'LineWidth', 2);
+    
+    
+    domF_by_supF{group}(subject, 1) = nanmedian([(alldom36./(allsup28)), (alldom28./(allsup36))]);
+    supF_by_domF{group}(subject, 1) = nanmedian(1./[(alldom36./(allsup28)), (alldom28./(allsup36))]);
+    mixF_by_mixF{group}(subject, 1) = nanmedian(1./(mix_36./mix_28));
     % store for group
     postWhole_dom_av{group}(subject, :) = nanmean( nanmean( postWhole_dom, 1 ), 2 );
     postWhole_sup_av{group}(subject, :) = nanmean( nanmean( postWhole_sup, 1 ), 2 );
@@ -279,144 +329,146 @@ for subject = 1:n{group}
     %% Average Over One Sec of Mixed and Dominant Percepts
     
     
-    postOne_dom = [];
-    postOne_sup = [];
-    postOne_mix = [];
-    
-    for trialNo = 1:16
-        
-        if isequal(buttons_freqs(official_ID).flickerOrder(:, trialNo), buttons_freqs(official_ID).angleOrder(:, trialNo))
-            ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
-            ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
-            ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
-            all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
-        else
-            ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
-            ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
-            ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
-            all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
-        end
-        
-        temp_freqs = freqs;
-        temp_freqs.powspctrm = permute(freqs.powspctrm(trialNo, :, :, :), [2 3 4 1]);
-        
-        % First Whenever Freq 36 Was Dominant
-        [sup_28, dom_36] = average_across_timebins(temp_freqs, electrodes, percepts(trialNo).start(ssvep_index_36)+shiftsize, ones(size(percepts(trialNo).duration(ssvep_index_36))));
-        % Now Whenever Freq 28 Was Dominant
-        [dom_28, sup_36] = average_across_timebins(temp_freqs, electrodes, percepts(trialNo).start(ssvep_index_28)+shiftsize, ones(size(percepts(trialNo).duration(ssvep_index_28))));
-        % Now whenever people reported mixture
-        [mix_28, mix_36] = average_across_timebins(temp_freqs, electrodes, percepts(trialNo).start(ssvep_index_mix)+shiftsize, ones(size(percepts(trialNo).duration(ssvep_index_mix))));
-        
-        diff_mix = mix_28 - mix_36;
-        
-        
-        postOne_dom = [postOne_dom, (dom_36), (dom_28)];
-        postOne_sup = [postOne_sup, (sup_36), (sup_28)];
-        postOne_mix = [postOne_mix, (mix_28), (mix_36)];
-        
-        
-    end
-    % store for group
-    postOne_dom_av{group}(subject, :) = nanmean( nanmean( postOne_dom, 1 ), 2 );
-    postOne_sup_av{group}(subject, :) = nanmean( nanmean( postOne_sup, 1 ), 2 );
-    postOne_mix_av{group}(subject, :) = nanmean( nanmean( postOne_mix, 1 ), 2 );
+%     postOne_dom = [];
+%     postOne_sup = [];
+%     postOne_mix = [];
+%     
+%     for trialNo = 1:16
+%         
+%         if isequal(buttons_freqs(official_ID).flickerOrder(:, trialNo), buttons_freqs(official_ID).angleOrder(:, trialNo))
+%             ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
+%             ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
+%             ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
+%             all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
+%         else
+%             ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
+%             ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
+%             ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
+%             all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
+%         end
+%         
+%         temp_freqs = freqs;
+%         temp_freqs.powspctrm = permute(freqs.powspctrm(trialNo, :, :, :), [2 3 4 1]);
+%         
+%         % First Whenever Freq 36 Was Dominant
+%         [sup_28, dom_36] = average_across_timebins(temp_freqs, electrodes, percepts(trialNo).start(ssvep_index_36)+shiftsize, ones(size(percepts(trialNo).duration(ssvep_index_36))));
+%         % Now Whenever Freq 28 Was Dominant
+%         [dom_28, sup_36] = average_across_timebins(temp_freqs, electrodes, percepts(trialNo).start(ssvep_index_28)+shiftsize, ones(size(percepts(trialNo).duration(ssvep_index_28))));
+%         % Now whenever people reported mixture
+%         [mix_28, mix_36] = average_across_timebins(temp_freqs, electrodes, percepts(trialNo).start(ssvep_index_mix)+shiftsize, ones(size(percepts(trialNo).duration(ssvep_index_mix))));
+%         
+%         diff_mix = mix_28 - mix_36;
+%         
+%         
+%         postOne_dom = [postOne_dom, (dom_36), (dom_28)];
+%         postOne_sup = [postOne_sup, (sup_36), (sup_28)];
+%         postOne_mix = [postOne_mix, (mix_28), (mix_36)];
+%         
+%         
+%     end
+%     % store for group
+%     postOne_dom_av{group}(subject, :) = nanmean( nanmean( postOne_dom, 1 ), 2 );
+%     postOne_sup_av{group}(subject, :) = nanmean( nanmean( postOne_sup, 1 ), 2 );
+%     postOne_mix_av{group}(subject, :) = nanmean( nanmean( postOne_mix, 1 ), 2 );
     
     
     %% Average Time Bins Across Mixed and Dominant Percepts
-    nbins = 10;
-    for i = 1:nbins;
-        dom_binned{i} = [];
-        sup_binned{i} = [];
-    end
+%     nbins = 10;
+%     for i = 1:nbins;
+%         dom_binned{i} = [];
+%         sup_binned{i} = [];
+%     end
+%     
+%     for trialNo = 1:16
+%         
+%         if isequal(buttons_freqs(official_ID).flickerOrder(:, trialNo), buttons_freqs(official_ID).angleOrder(:, trialNo))
+%             ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).cw_index;
+%             ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).ccw_index;
+%             ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).mix_index;
+%             all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
+%         else
+%             ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).cw_index;
+%             ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).ccw_index;
+%             ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > minpercdur & percepts(trialNo).mix_index;
+%             all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
+%         end
+%         
+%         temp_freqs = freqs;
+%         temp_freqs.powspctrm = permute(freqs.powspctrm(trialNo, :, :, :), [2 3 4 1]);
+%         
+%         
+%         for i = 1:10
+%             [sup_28, dom_36] = average_across_timebins(temp_freqs, electrodes,...
+%                 percepts(trialNo).start(ssvep_index_36)+shiftsize + percepts(trialNo).duration(ssvep_index_36)*(i-1)/10, percepts(trialNo).duration(ssvep_index_36)*0.1 );
+%             
+%             [dom_28, sup_36] = average_across_timebins(temp_freqs, electrodes,...
+%                 percepts(trialNo).start(ssvep_index_28)+shiftsize + percepts(trialNo).duration(ssvep_index_28)*(i-1)/10, percepts(trialNo).duration(ssvep_index_28)*0.1 );
+%             
+%             dom_binned{i} = [dom_binned{i}, (dom_36), (dom_28)];
+%             sup_binned{i} = [sup_binned{i}, (sup_36), (sup_28)];
+%         end
+%         
+%     end
+%     
+%     for i = 1:10
+%         dom_bin_av{group}(subject, i) = mean(dom_binned{i});
+%         sup_bin_av{group}(subject, i) = mean(sup_binned{i});
+%     end
     
-    for trialNo = 1:16
-        
-        if isequal(buttons_freqs(official_ID).flickerOrder(:, trialNo), buttons_freqs(official_ID).angleOrder(:, trialNo))
-            ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
-            ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
-            ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
-            all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
-        else
-            ssvep_index_28 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).cw_index;
-            ssvep_index_36 = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).ccw_index;
-            ssvep_index_mix = percepts(trialNo).start > 1 & percepts(trialNo).duration > 0.15 & percepts(trialNo).mix_index;
-            all_percepts = ssvep_index_36 | ssvep_index_28 | ssvep_index_mix;
-        end
-        
-        temp_freqs = freqs;
-        temp_freqs.powspctrm = permute(freqs.powspctrm(trialNo, :, :, :), [2 3 4 1]);
-        
-        
-        for i = 1:10
-            [sup_28, dom_36] = average_across_timebins(temp_freqs, electrodes,...
-                percepts(trialNo).start(ssvep_index_36)+shiftsize + percepts(trialNo).duration(ssvep_index_36)*(i-1)/10, percepts(trialNo).duration(ssvep_index_36)*0.1 );
-            
-            [dom_28, sup_36] = average_across_timebins(temp_freqs, electrodes,...
-                percepts(trialNo).start(ssvep_index_28)+shiftsize + percepts(trialNo).duration(ssvep_index_28)*(i-1)/10, percepts(trialNo).duration(ssvep_index_28)*0.1 );
-            
-            dom_binned{i} = [dom_binned{i}, (dom_36), (dom_28)];
-            sup_binned{i} = [sup_binned{i}, (sup_36), (sup_28)];
-        end
-        
-    end
-    
-    for i = 1:10
-        dom_bin_av{group}(subject, i) = mean(dom_binned{i});
-        sup_bin_av{group}(subject, i) = mean(sup_binned{i});
-    end
-    
-    
+%% Peak- Aligning
+
+
     %% Analyse Deviation from mean
-    
-    concat_diffs = [];
-    concat_temp_powspctrm = [];
-    all_samples{group, subject} = [];
-    for trialNo = 1:16
-        
-        
-        temp_freqs = freqs;
-        temp_freqs.powspctrm = permute(freqs.powspctrm(trialNo, :, :, :), [2 3 4 1]);
-        
-        % Average across electrodes
-%         temp_powspctrm = nanmean( temp_freqs.powspctrm( :, :, : ), 1 );
-        
-        for frequency_of_interest = 1:2
-            
-            mu = nanmean( temp_freqs.powspctrm( :, frequency_of_interest, temp_freqs.time > 0.5 & temp_freqs.time < 12 ), 3 );
-            sd = nanstd( temp_freqs.powspctrm( :, frequency_of_interest, temp_freqs.time > 0.5 & temp_freqs.time < 12 ), [], 3 );
-            
-            % Normalisation
-            for iElec = 1:size( temp_freqs.powspctrm, 1 )
-                temp_freqs.powspctrm( iElec, frequency_of_interest, :) = (temp_freqs.powspctrm( iElec, frequency_of_interest, :)) / mu(iElec);
-            end
-            
-        end
-        trialtime = temp_freqs.time > 0.5 & temp_freqs.time < 12;
-        all_samples{group, subject} = [all_samples{group, subject}, squeeze(nanmean(temp_freqs.powspctrm(:, :, temp_freqs.time > 0.5 & temp_freqs.time < 12), 1))];
-        
-        diffs_by_elec(:, :, :, trialNo) = temp_freqs.powspctrm(:, 1, :) - temp_freqs.powspctrm(:, 2, :);
-        wtas_by_elec(:, :, :, trialNo) = abs(temp_freqs.powspctrm(:, 1, :) - temp_freqs.powspctrm(:, 2, :)) ./ (temp_freqs.powspctrm(:, 1, :) + temp_freqs.powspctrm(:, 2, :));
-        
-%         wta_by_elec_mix(:, :, :, trialNo) = abs(temp_freqs.powspctrm(:, 1, freqs.mix(trialNo, :)) - temp_freqs.powspctrm(:, 2, freqs.mix(trialNo, :))) ./ (temp_freqs.powspctrm(:, 1, freqs.mix(trialNo, :)) + temp_freqs.powspctrm(:, 2, freqs.mix(trialNo, :)));
-        
-    end
-    
-    index_mix_wta = permute(freqs.mix, [3 4 2 1]);
-    for iElec = 1:numel(electrodes)-1
-        index_mix_wta = cat(1, index_mix_wta, permute(freqs.mix, [3 4 2 1]));
-    end
-    index_dom_wta = permute(freqs.dom28 | freqs.dom36, [3 4 2 1]);
-    for iElec = 1:numel(electrodes)-1
-        index_dom_wta = cat(1, index_dom_wta, permute(freqs.dom28 | freqs.dom36, [3 4 2 1]));
-    end
-    
-    wta{group}(subject, 1) = squeeze(nanmean( nanmean( nanmean( wtas_by_elec(:, :, trialtime, :), 3 ), 1), 4));
-    wta_mix{group}(subject, 1) = squeeze(nanmean( nanmean( nanmean( wtas_by_elec(index_mix_wta), 3 ), 1), 4));
-    wta_dom{group}(subject, 1) = squeeze(nanmean( nanmean( nanmean( wtas_by_elec(index_dom_wta), 3 ), 1), 4));
-    
-    difference_SD{group}(subject, 1) = squeeze(nanmean( nanmean( nanstd( diffs_by_elec, [], 3 ), 1), 4));
-    difference_mix{group}(subject, 1) = squeeze(nanmean( nanmean( nanmean( abs(diffs_by_elec(index_mix_wta)), 3 ), 1), 4));
-    difference_dom{group}(subject, 1) = squeeze(nanmean( nanmean( nanmean( abs(diffs_by_elec(index_dom_wta)), 3 ), 1), 4));
+%     
+%     concat_diffs = [];
+%     concat_temp_powspctrm = [];
+%     all_samples{group, subject} = [];
+%     for trialNo = 1:16
+%         
+%         
+%         temp_freqs = freqs;
+%         temp_freqs.powspctrm = permute(freqs.powspctrm(trialNo, :, :, :), [2 3 4 1]);
+%         
+%         % Average across electrodes
+% %         temp_powspctrm = nanmean( temp_freqs.powspctrm( :, :, : ), 1 );
+%         
+%         for frequency_of_interest = 1:2
+%             
+%             mu = nanmean( temp_freqs.powspctrm( :, frequency_of_interest, temp_freqs.time > 0.5 & temp_freqs.time < 12 ), 3 );
+%             sd = nanstd( temp_freqs.powspctrm( :, frequency_of_interest, temp_freqs.time > 0.5 & temp_freqs.time < 12 ), [], 3 );
+%             
+%             % Normalisation
+%             for iElec = 1:size( temp_freqs.powspctrm, 1 )
+%                 temp_freqs.powspctrm( iElec, frequency_of_interest, :) = (temp_freqs.powspctrm( iElec, frequency_of_interest, :)) / mu(iElec);
+%             end
+%             
+%         end
+%         trialtime = temp_freqs.time > 0.5 & temp_freqs.time < 12;
+%         all_samples{group, subject} = [all_samples{group, subject}, squeeze(nanmean(temp_freqs.powspctrm(:, :, temp_freqs.time > 0.5 & temp_freqs.time < 12), 1))];
+%         
+%         diffs_by_elec(:, :, :, trialNo) = temp_freqs.powspctrm(:, 1, :) - temp_freqs.powspctrm(:, 2, :);
+%         wtas_by_elec(:, :, :, trialNo) = abs(temp_freqs.powspctrm(:, 1, :) - temp_freqs.powspctrm(:, 2, :)) ./ (temp_freqs.powspctrm(:, 1, :) + temp_freqs.powspctrm(:, 2, :));
+%         
+% %         wta_by_elec_mix(:, :, :, trialNo) = abs(temp_freqs.powspctrm(:, 1, freqs.mix(trialNo, :)) - temp_freqs.powspctrm(:, 2, freqs.mix(trialNo, :))) ./ (temp_freqs.powspctrm(:, 1, freqs.mix(trialNo, :)) + temp_freqs.powspctrm(:, 2, freqs.mix(trialNo, :)));
+%         
+%     end
+%     
+%     index_mix_wta = permute(freqs.mix, [3 4 2 1]);
+%     for iElec = 1:numel(electrodes)-1
+%         index_mix_wta = cat(1, index_mix_wta, permute(freqs.mix, [3 4 2 1]));
+%     end
+%     index_dom_wta = permute(freqs.dom28 | freqs.dom36, [3 4 2 1]);
+%     for iElec = 1:numel(electrodes)-1
+%         index_dom_wta = cat(1, index_dom_wta, permute(freqs.dom28 | freqs.dom36, [3 4 2 1]));
+%     end
+%     
+%     wta{group}(subject, 1) = squeeze(nanmean( nanmean( nanmean( wtas_by_elec(:, :, trialtime, :), 3 ), 1), 4));
+%     wta_mix{group}(subject, 1) = squeeze(nanmean( nanmean( nanmean( wtas_by_elec(index_mix_wta), 3 ), 1), 4));
+%     wta_dom{group}(subject, 1) = squeeze(nanmean( nanmean( nanmean( wtas_by_elec(index_dom_wta), 3 ), 1), 4));
+%     
+%     difference_SD{group}(subject, 1) = squeeze(nanmean( nanmean( nanstd( diffs_by_elec, [], 3 ), 1), 4));
+%     difference_mix{group}(subject, 1) = squeeze(nanmean( nanmean( nanmean( abs(diffs_by_elec(index_mix_wta)), 3 ), 1), 4));
+%     difference_dom{group}(subject, 1) = squeeze(nanmean( nanmean( nanmean( abs(diffs_by_elec(index_dom_wta)), 3 ), 1), 4));
     
 %     for iElec = 1:64
 %     difference_dom_by_elec{group, subject}(1, iElec) =...

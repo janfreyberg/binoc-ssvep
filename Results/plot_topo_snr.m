@@ -1,15 +1,27 @@
 cfg_topoSNR = [];
 cfg_topoSNR.parameter = 'avg';
 cfg_topoSNR.layout = 'biosemi64.lay';
-cfg_topoSNR.zlim = [0 7];
+cfg_topoSNR.zlim = [0 5];
 cfg_topoSNR.commentpos = 'lefttop';
 cfg_topoSNR.colorbar = 'EastOutside';
+
+cfg_topoSNR.commentpos = 'lefttop';
+cfg_topoSNR.colorbar = 'EastOutside';
+cfg_topoSNR.fontsize = 12;
+
+% cfg.highlight = 'on';
+cfg_topoSNR.highlightchannel = [27 29 64];
+cfg_topoSNR.highlightsymbol = '*';
+cfg_topoSNR.highlightsize = 4;
+cfg_topoSNR.highlightfontsize = 2;
+cfg_topoSNR.highlightcolor = [0.1 0.7 0.1];
+
 
 group_names = {'CON', 'ASC'};
 trial_names = {'28.8 Hz', '36.0 Hz'};
 figure;
 
-for group = 1:2;
+for group = 1:1;
     
     
     for iFreq = 1:2;
